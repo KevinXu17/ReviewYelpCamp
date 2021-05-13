@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const path = require('path')
 const Campground = require('./models/campground')
 const methodOverride = require('method-override')
+const ejsMat = require('ejs-mate')
 
 
 // app
@@ -35,16 +36,18 @@ app.set('views', path.join(__dirname, "views"))
 app.use(express.urlencoded({extended: true}))
 // method-override
 app.use(methodOverride('_method'))
+// ejs-mate
+app.engine('ejs', ejsMat)
 
 // router
 app.get('/', (req, res) => {
-    res.render('home')
+    res.render('home', {pageTitle: "home"})
 })
 
 app.get('/campgrounds', async (req, res) => {
     try {
         const campgrounds = await Campground.find({});
-        res.render('campgrounds/index', {campgrounds})
+        res.render('campgrounds/index', {campgrounds: campgrounds, pageTitle: "campgrounds"})
     } catch (e) {
         console.log("Failed to load data")
         console.log(e)
@@ -52,13 +55,13 @@ app.get('/campgrounds', async (req, res) => {
 })
 
 app.get('/campgrounds/new', (req, res) => {
-    res.render('campgrounds/new');
+    res.render('campgrounds/new', {pageTitle: "newCampgroud"});
 })
  
 app.get('/campgrounds/:id', async (req, res) => {
     const id = req.params.id;
     const campground = await Campground.findById({_id: id});
-    res.render('campgrounds/show', {campground})
+    res.render('campgrounds/show', {campground: campground, pageTitle: campground.title})
 })
 
 app.post('/campgrounds', async (req, res) => {
@@ -70,7 +73,7 @@ app.post('/campgrounds', async (req, res) => {
 app.get('/campgrounds/:id/edit', async (req, res) => {
     const id = req.params.id;
     const campground = await Campground.findById({_id: id})
-    res.render("campgrounds/edit", {campground})
+    res.render("campgrounds/edit", {campground:campground, pageTitle:'updateCampground'})
 })
 
 app.put('/campgrounds/:id', async (req, res) => {
@@ -83,7 +86,9 @@ app.delete('/campgrounds/:id', async (req, res) => {
     res.redirect("/campgrounds")
 })
 
-
+app.get('/*', (req, res) => {
+    res.status(500).send("'error: 500 Internal Server Error'")
+})
 
 
 app.listen(port, ()=>{
