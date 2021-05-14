@@ -1,22 +1,33 @@
 <% layout('./layouts/boilerplate') -%>
-    <h1>Update campground</h1>
-    <form action="/campgrounds/<%=campground._id%>/?_method=PUT" method="POST">
-        <div>
-            <label for='title'>Title: </label>
-            <input type="text" id='title' name='campground[title]' value="<%=campground.title%>">
+<div class="row g-3">
+    <form class="row g-3" action="/campgrounds" method="POST">
+        <h1 class="text-center">Update Campground</h1>
+        <div class="col-md-6">
+          <label for="title" class="form-label">Title</label>
+          <input type="text" class="form-control" id="title" name='campground[title]' value='<%=campground.title%>'>
         </div>
-        <div>
-            <label for='price'>Price: </label>
-            <input type="price" id='price' name='campground[price]' value="<%=campground.price%>">
+        <div class="col-md-6">
+          <label for="location" class="form-label">Location</label>
+          <input type="text" class="form-control" id="location" name='campground[location]' value='<%=campground.location%>'>
         </div>
-        <div>
-            <label for='description'>Description: </label>
-            <input type="text" id='description' name='campground[description]' value="<%=campground.description%>">
+        <div class="col-md-6">
+            <label for="price" class="form-label">Price</label>
+            <input type="text" class="form-control" id="price" name='campground[price]' value='<%=campground.price%>'>
+          </div>
+          <div class="col-md-6">
+            <label for="image" class="form-label">Image URL</label>
+            <input type="text" class="form-control" id="image" name='campground[image]' value='<%=campground.image%>'>
+          </div>
+        <div class="col-12">
+          <label for="description" class="form-label">Description</label>
+          <textarea type="text" class="form-control" id="description" name='campground[description]' value='<%=campground.description%>'> </textarea>
         </div>
-        <div>
-            <label for='location'>Location: </label>
-            <input type="text" id='location' name='campground[location]' value="<%=campground.location%>">
+          
+        <div class="col-12">
+          <button type="submit" class="btn btn-info">Update</button>
         </div>
-        <button>Submit</button>
+      </form>
+</div>
+
     
-    </form>
+
