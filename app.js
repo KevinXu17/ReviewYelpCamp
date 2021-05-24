@@ -4,6 +4,11 @@ const path = require('path')
 const Campground = require('./models/campground')
 const methodOverride = require('method-override')
 const ejsMat = require('ejs-mate')
+// express validation
+const catchAsync = require('./utils/catchAsync')
+const ExpressError = require('./utils/expressError')
+const Joi = require('joi');
+const campgroundValidationSchema = require('./middleWare/validation/campgroundValidationSchema')
 
 
 // app
@@ -39,12 +44,26 @@ app.use(methodOverride('_method'))
 // ejs-mate
 app.engine('ejs', ejsMat)
 
+// Joi middleware  should not be here: TODO
+const validateCampground = (validationSchema) => {
+    return (req, res, next) => {
+        const {error} = validationSchema.validate(req.body);
+        if (error) {
+            const msg = error.details.map(el => el.message).join(';')
+            throw new ExpressError(msg, 400);
+        } else {
+            next();
+        }
+    } 
+}
+
+
 // router
 app.get('/', (req, res) => {
     res.render('home', {pageTitle: "home"})
 })
 
-app.get('/campgrounds', async (req, res) => {
+app.get('/campgrounds', catchAsync(async (req, res) => {
     try {
         const campgrounds = await Campground.find({});
         res.render('campgrounds/index', {campgrounds: campgrounds, pageTitle: "campgrounds"})
@@ -52,42 +71,54 @@ app.get('/campgrounds', async (req, res) => {
         console.log("Failed to load data")
         console.log(e)
     }
-})
+}))
 
 app.get('/campgrounds/new', (req, res) => {
     res.render('campgrounds/new', {pageTitle: "newCampgroud"});
 })
  
-app.get('/campgrounds/:id', async (req, res) => {
+app.get('/campgrounds/:id', catchAsync(async (req, res, next) => {
     const id = req.params.id;
-    const campground = await Campground.findById({_id: id});
-    res.render('campgrounds/show', {campground: campground, pageTitle: campground.title})
-})
+    try {
+        const campground = await Campground.findById({_id: id});
+        res.render('campgrounds/show', {campground: campground, pageTitle: campground.title})
+    } catch (e) {
+        throw new ExpressError(`Can not find the campgroud ID: ${id}!`, 400);
+    }
+}))
 
-app.post('/campgrounds', async (req, res) => {
-    const campground = new Campground(req.body.campground);
+app.post('/campgrounds', validateCampground(campgroundValidationSchema), catchAsync(async (req, res) => {
+    const campgroundData = req.body.campground;
+    if (!campgroundData) throw new ExpressError("Invalid campground data", 400);
+    const campground = new Campground(campgroundData);
     await campground.save();
-    res.redirect(`/campgrounds/${campground._id}`)
-})
+    res.redirect(`/campgrounds/${campgroundData._id}`)
+}))
 
-app.get('/campgrounds/:id/edit', async (req, res) => {
+app.get('/campgrounds/:id/edit', catchAsync(async (req, res) => {
     const id = req.params.id;
     const campground = await Campground.findById({_id: id})
     res.render("campgrounds/edit", {campground:campground, pageTitle:'updateCampground'})
-})
+}))
 
-app.put('/campgrounds/:id', async (req, res) => {
+app.put('/campgrounds/:id', validateCampground(campgroundValidationSchema), catchAsync(async (req, res) => {
     await Campground.updateOne({_id: req.params.id}, {...req.body.campground})
     res.redirect(`/campgrounds/${req.params.id}`)
-})
+}))
 
-app.delete('/campgrounds/:id', async (req, res) => {
+app.delete('/campgrounds/:id', catchAsync(async (req, res) => {
     await Campground.deleteOne({_id:req.params.id})
     res.redirect("/campgrounds")
+}))
+
+// catch error path
+app.get('/*', (req, res) => {
+    next(new ExpressError("Page Not Found!", 404));
 })
 
-app.get('/*', (req, res) => {
-    res.status(500).send("'error: 500 Internal Server Error'")
+app.use((err, req, res, next) => {
+   const {statusCode = 500, message = "Error"} = err;
+    res.status(statusCode).render("error/error", {pageTitle:'error', err});
 })
 
 
