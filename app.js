@@ -2,14 +2,16 @@ const express = require('express')
 const mongoose = require('mongoose')
 const path = require('path')
 const Campground = require('./models/campground')
+const Review = require('./models/review')
 const methodOverride = require('method-override')
 const ejsMat = require('ejs-mate')
 // express validation
 const catchAsync = require('./utils/catchAsync')
 const ExpressError = require('./utils/expressError')
 const Joi = require('joi');
-const campgroundValidationSchema = require('./middleWare/validation/campgroundValidationSchema')
-
+// validation schema
+const campgroundValidationSchema = require('./middleWare/validation/validationSchema')
+const reviewValidationSchema = require('./middleWare/validation/validationSchema')
 
 // app
 const app = express()
@@ -45,7 +47,7 @@ app.use(methodOverride('_method'))
 app.engine('ejs', ejsMat)
 
 // Joi middleware  should not be here: TODO
-const validateCampground = (validationSchema) => {
+const validateReqDataMW = (validationSchema) => {
     return (req, res, next) => {
         const {error} = validationSchema.validate(req.body);
         if (error) {
@@ -57,8 +59,12 @@ const validateCampground = (validationSchema) => {
     } 
 }
 
+const checkCampground = (campground) => {
+    if (!campground) throw new ExpressError("Can not find the Campground.", 400);
+}
 
-// router
+
+// routerht
 app.get('/', (req, res) => {
     res.render('home', {pageTitle: "home"})
 })
@@ -79,20 +85,38 @@ app.get('/campgrounds/new', (req, res) => {
  
 app.get('/campgrounds/:id', catchAsync(async (req, res, next) => {
     const id = req.params.id;
-    try {
-        const campground = await Campground.findById({_id: id});
-        res.render('campgrounds/show', {campground: campground, pageTitle: campground.title})
-    } catch (e) {
-        throw new ExpressError(`Can not find the campgroud ID: ${id}!`, 400);
-    }
+    const campground = await Campground.findById({_id: id}).populate("reviews");
+    checkCampground(campground);
+    res.render('campgrounds/show', {campground: campground, pageTitle: campground.title})
 }))
 
-app.post('/campgrounds', validateCampground(campgroundValidationSchema), catchAsync(async (req, res) => {
+app.post('/campgrounds', validateReqDataMW(campgroundValidationSchema), catchAsync(async (req, res) => {
     const campgroundData = req.body.campground;
-    if (!campgroundData) throw new ExpressError("Invalid campground data", 400);
+    checkCampground(campground);
     const campground = new Campground(campgroundData);
     await campground.save();
     res.redirect(`/campgrounds/${campgroundData._id}`)
+}))
+
+// POST /campgrounds/:id/reviews
+app.post('/campgrounds/:id/reviews', validateReqDataMW(reviewValidationSchema) , catchAsync(async(req, res) => {
+    const campground = await Campground.findById(req.params.id);
+    checkCampground(campground);
+    const reviewData = req.body.review;
+    if (!reviewData) throw new ExpressError("Invalid review data", 400);
+    const review = new Review(reviewData);
+    campground.reviews.push(review);
+    await review.save();
+    await campground.save();
+    res.redirect(`/campgrounds/${campground._id}`);
+}))
+
+// DELETE review in campground
+app.delete('/campgrounds/:id/reviews/:reviewId', catchAsync(async (req, res) => {
+    const {id, reviewId} = req.params;
+    await Campground.findByIdAndUpdate(id, {$pull: {reviews: reviewId}});
+    await Review.deleteOne({_id: reviewId});  
+    res.redirect(`/campgrounds/${id}`);
 }))
 
 app.get('/campgrounds/:id/edit', catchAsync(async (req, res) => {
@@ -101,13 +125,13 @@ app.get('/campgrounds/:id/edit', catchAsync(async (req, res) => {
     res.render("campgrounds/edit", {campground:campground, pageTitle:'updateCampground'})
 }))
 
-app.put('/campgrounds/:id', validateCampground(campgroundValidationSchema), catchAsync(async (req, res) => {
+app.put('/campgrounds/:id', validateReqDataMW(campgroundValidationSchema), catchAsync(async (req, res) => {
     await Campground.updateOne({_id: req.params.id}, {...req.body.campground})
     res.redirect(`/campgrounds/${req.params.id}`)
 }))
 
 app.delete('/campgrounds/:id', catchAsync(async (req, res) => {
-    await Campground.deleteOne({_id:req.params.id})
+    await Campground.findOneAndDelete({_id:req.params.id})
     res.redirect("/campgrounds")
 }))
 
@@ -116,6 +140,7 @@ app.get('/*', (req, res) => {
     next(new ExpressError("Page Not Found!", 404));
 })
 
+// error route
 app.use((err, req, res, next) => {
    const {statusCode = 500, message = "Error"} = err;
     res.status(statusCode).render("error/error", {pageTitle:'error', err});

@@ -11,4 +11,12 @@ const campgroundValidationSchema = Joi.object({
 
 })
 
+const reviewValidationSchema = Joi.object({
+    review: Joi.object({
+        body: Joi.string().required().min(1).max(200),
+        rating: Joi.number().required().min(1).max(5)
+    }).required()
+})
+
 module.exports = campgroundValidationSchema;
+module.exports = reviewValidationSchema;
