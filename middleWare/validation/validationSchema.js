@@ -18,5 +18,5 @@ const reviewValidationSchema = Joi.object({
     }).required()
 })
 
-module.exports = campgroundValidationSchema;
-module.exports = reviewValidationSchema;
+module.exports.campgroundValidationSchema = campgroundValidationSchema;
+module.exports.reviewValidationSchema = reviewValidationSchema;
