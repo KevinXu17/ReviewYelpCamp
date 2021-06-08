@@ -53,7 +53,7 @@ router.put('/:id', validateReqDataMW(campgroundValidationSchema), catchAsync(asy
 }))
 
 router.delete('/:id', catchAsync(async (req, res) => {
-    await Campground.findOneAndDelete({_id:req.params.id})
+    await Campground.deleteOne({_id:req.params.id})
     res.redirect("/campgrounds")
 }))
 

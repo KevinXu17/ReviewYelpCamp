@@ -5,10 +5,21 @@ const methodOverride = require('method-override')
 const ejsMat = require('ejs-mate')
 // express validation
 const ExpressError = require('./utils/expressError')
-const {campgroundValidationSchema, reviewValidationSchema} = require('./middleWare/validation/validationSchema')
 // router
 const campgroundsRouter = require('./routers/campgrounds')
 const reviewRouter = require('./routers/reviews')
+// session
+const session = require('express-session')
+const sessionConfig = {
+    secret: 'IAMTHEBESTSECRET',
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true,
+        // 5mins
+        maxAge: 1000 * 60 * 5
+    }
+}
 // app
 const app = express()
 const port = 3000
@@ -18,9 +29,10 @@ const port = 3000
 const mongooseOptions = {
     useNewUrlParser: true,
     useCreateIndex: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    useFindAndModify: false
 }
-const uri = 'mongodb://campgrounds:campgrounds@127.0.0.1:27018/yelp-camp?authSource=admin'
+const uri = 'mongodb://campgrounds:campgrounds@127.0.0.1:27019/yelp-camp?authSource=admin'
 mongoose.connect(uri, 
 mongooseOptions).catch(error => console.log("Failed to connect database"))
 
@@ -41,6 +53,10 @@ app.use(express.urlencoded({extended: true}))
 app.use(methodOverride('_method'))
 // ejs-mate
 app.engine('ejs', ejsMat)
+// Serving static files
+app.use(express.static(path.join(__dirname, 'public')))
+// session
+app.use(session(sessionConfig))
 
 // router
 app.use('/campgrounds', campgroundsRouter);
@@ -48,7 +64,7 @@ app.use('/campgrounds', campgroundsRouter);
 app.use('/campgrounds/:id/reviews', reviewRouter);
 
 
-// routerht
+// router
 app.get('/', (req, res) => {
     res.render('home', {pageTitle: "home"})
 })
