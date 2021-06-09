@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const path = require('path')
 const methodOverride = require('method-override')
 const ejsMat = require('ejs-mate')
+const flash = require('connect-flash')
 // express validation
 const ExpressError = require('./utils/expressError')
 // router
@@ -20,6 +21,8 @@ const sessionConfig = {
         maxAge: 1000 * 60 * 5
     }
 }
+
+
 // app
 const app = express()
 const port = 3000
@@ -58,11 +61,17 @@ app.use(express.static(path.join(__dirname, 'public')))
 // session
 app.use(session(sessionConfig))
 
+// flash message HAVE TO BETWEEN parser & session and router
+app.use(flash())
+app.use((req, res, next) => {
+    res.locals.success = req.flash('success')
+    res.locals.error = req.flash("error")
+    next()
+})
 // router
 app.use('/campgrounds', campgroundsRouter);
 // need to set mergeParams to true in router => to get :id
 app.use('/campgrounds/:id/reviews', reviewRouter);
-
 
 // router
 app.get('/', (req, res) => {
@@ -76,9 +85,9 @@ app.get('/*', (req, res, next) => {
 
 // error route
 app.use((err, req, res, next) => {
-   const {statusCode = 500, message = "Error"} = err;
-    res.status(statusCode).render("error/error", {pageTitle:'error', err});
-})
+    const {statusCode = 500, message = "Error"} = err;
+     res.status(statusCode).render("error/error", {pageTitle:'error', err});
+ })
 
 app.listen(port, ()=>{
     console.log(`The server is set up at ${port}`)

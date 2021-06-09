@@ -1,5 +1,5 @@
 const ExpressError = require('../expressError')
-// Joi middleware  should not be here: TODO
+const ObjectId = require('mongoose').Types.ObjectId;
 const validateReqDataMW = (validationSchema) => {
     return (req, res, next) => {
         const {error} = validationSchema.validate(req.body);
@@ -12,8 +12,13 @@ const validateReqDataMW = (validationSchema) => {
     } 
 }
 
-const checkCampground = (campground) => {
-    if (!campground) throw new ExpressError("Can not find the Campground.", 400);
+const canFindCamground = (campground, req) => {
+    if (!campground) {
+        req.flash('error', 'Can not find the campground!')
+        return false;
+    };
+    return true;
 }
 
-module.exports = {validateReqDataMW, checkCampground}
+
+module.exports = {validateReqDataMW, canFindCamground}
