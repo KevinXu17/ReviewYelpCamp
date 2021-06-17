@@ -4,11 +4,16 @@ const path = require('path')
 const methodOverride = require('method-override')
 const ejsMat = require('ejs-mate')
 const flash = require('connect-flash')
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+const User = require('./models/user');
+
 // express validation
 const ExpressError = require('./utils/expressError')
 // router
 const campgroundsRouter = require('./routers/campgrounds')
 const reviewRouter = require('./routers/reviews')
+const userRouter = require('./routers/users')
 // session
 const session = require('express-session')
 const sessionConfig = {
@@ -21,7 +26,6 @@ const sessionConfig = {
         maxAge: 1000 * 60 * 5
     }
 }
-
 
 // app
 const app = express()
@@ -61,18 +65,29 @@ app.use(express.static(path.join(__dirname, 'public')))
 // session
 app.use(session(sessionConfig))
 
+// passport 
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
 // flash message HAVE TO BETWEEN parser & session and router
 app.use(flash())
 app.use((req, res, next) => {
+    res.locals.currentUser = req.user;
     res.locals.success = req.flash('success')
     res.locals.error = req.flash("error")
     next()
 })
 // router
+app.use('/', userRouter)
 app.use('/campgrounds', campgroundsRouter);
 // need to set mergeParams to true in router => to get :id
 app.use('/campgrounds/:id/reviews', reviewRouter);
 
+
+    
 // router
 app.get('/', (req, res) => {
     res.render('home', {pageTitle: "home"})

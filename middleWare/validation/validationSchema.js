@@ -18,5 +18,12 @@ const reviewValidationSchema = Joi.object({
     }).required()
 })
 
-module.exports.campgroundValidationSchema = campgroundValidationSchema;
-module.exports.reviewValidationSchema = reviewValidationSchema;
+const userValidationSchema = Joi.object({
+    user: Joi.object({
+        email: Joi.string().email().required().min(7).max(50),
+        username: Joi.string().required().min(1).max(30),
+        password: Joi.string().required().min(3).max(10)
+    }).required()
+})
+
+module.exports = {campgroundValidationSchema, reviewValidationSchema, userValidationSchema}
