@@ -10,59 +10,25 @@ const Campground = require('../models/campground')
 // validation data
 const {validateReqDataMW, canFindCamground} = require('../utils/validation/validateData')
 // authorization
-const isLoggedIn = require('../middleWare/isLoggedIn')
+const isLoggedIn = require('../middleWare/authentication');
+const isAuthor = require('../middleWare/authorization')
 
-router.get('/', catchAsync(async (req, res) => {
-    try {
-        const campgrounds = await Campground.find({});
-        res.render('campgrounds/index', {campgrounds: campgrounds, pageTitle: "campgrounds"})
-    } catch (e) {
-        console.log("Failed to load data")
-        console.log(e)
-    }
-}))
+const campgrounds = require('../controllers/campgrounds')
 
-router.get('/new', isLoggedIn, (req, res) => {
-    res.render('campgrounds/new', {pageTitle: "newCampgroud"});
-})
- 
-router.get('/:id', catchAsync(async (req, res, next) => {
-    const id = req.params.id;
-    const campground = await Campground.findOne({_id: id}).populate("reviews");
-    if (!canFindCamground(campground, req)) {
-        return res.redirect('/campgrounds')
-    }
-    res.render('campgrounds/show', {campground: campground, pageTitle: campground.title})
-}))
+// show all campgrounds
+router.get('/', catchAsync(campgrounds.listCampgrounds));
+// new campground page
+router.get('/new', isLoggedIn, campgrounds.newFormPage)
+ // show campground
+router.get('/:id', catchAsync(campgrounds.campground))
+// add new campground
+router.post('/', isLoggedIn, validateReqDataMW(campgroundValidationSchema), catchAsync(campgrounds.newCampground))
 
-router.post('/', isLoggedIn, validateReqDataMW(campgroundValidationSchema), catchAsync(async (req, res) => {
-    const campgroundData = req.body.campground;
-    const campground = new Campground(campgroundData);
-    await campground.save();
-    req.flash('success', 'Successfully build a new campground!')
-    res.redirect(`/campgrounds/${campground._id}`)
-}))
-
-router.get('/:id/edit', isLoggedIn, catchAsync(async (req, res) => {
-    const id = req.params.id;
-    const campground = await Campground.findOne({_id: id});
-    if (!canFindCamground(campground, req)) {
-        return res.redirect('/campgrounds')
-    }
-    res.render("campgrounds/edit", {campground:campground, pageTitle:'updateCampground'})
-}))
+router.get('/:id/edit', isLoggedIn, isAuthor, catchAsync(campgrounds.edit))
 
 // update campground
-router.put('/:id', isLoggedIn, validateReqDataMW(campgroundValidationSchema), catchAsync(async (req, res) => {
-    await Campground.updateOne({_id: req.params.id}, {...req.body.campground})
-    req.flash('success', `Successfully update: ${req.body.campground.title}!`)
-    res.redirect(`/campgrounds/${req.params.id}`)
-}))
+router.put('/:id', isLoggedIn, isAuthor, validateReqDataMW(campgroundValidationSchema), catchAsync(campgrounds.updateCampground))
 
-router.delete('/:id', isLoggedIn, catchAsync(async (req, res) => {
-    await Campground.deleteOne({_id:req.params.id})
-    req.flash('success', `Successfully delete the campground!`)
-    res.redirect("/campgrounds")
-}))
+router.delete('/:id', isLoggedIn, isAuthor, catchAsync(campgrounds.deleteCampground))
 
 module.exports = router;

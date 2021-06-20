@@ -8,18 +8,23 @@
               <p class="card-text"><%=campground.description%></p>
             </div>
             <ul class="list-group list-group-flush">
-              <li class="list-group-item"><%=campground.location%></li>
+              <li class="list-group-item">Author: <%=campground.author.username%></li>
+              <li class="list-group-item">Location: <%=campground.location%></li>
               <li class="list-group-item">$<%=campground.price%> / night</li>
             </ul>
-            <div class="card-body">
-              <a class="btn btn-info" href="/campgrounds/<%= campground._id%>/edit">Edit</a>
-                <form class="d-inline" action="/campgrounds/<%= campground._id%>/?_method=DELETE" method="POST">
-                    <button class="btn btn-danger">Delete</button>
-                </form>
-            </div>
+            <% if (currentUser && campground.author._id.equals(currentUser._id)) {%>
+              <div class="card-body">
+                <a class="btn btn-info" href="/campgrounds/<%= campground._id%>/edit">Edit</a>
+                  <form class="d-inline" action="/campgrounds/<%= campground._id%>/?_method=DELETE" method="POST">
+                      <button class="btn btn-danger">Delete</button>
+                  </form>
+              </div>
+            <%}%>
     </div>
   </div>
-  <div class="col-6">
+  
+      <div class="col-6">
+        <% if (currentUser) {%>
                   <!-- review form -->
                   <h3>Leave a Review</h3>
                   <form action="/campgrounds/<%=campground._id%>/reviews" class="mb-3 validated-form" novalidate method="POST" >
@@ -35,22 +40,38 @@
                     </div>
                     <button class="btn btn-success">Add Review</button>
                   </form>
+                  <%}%>
                   <div class="mb-3">
-                    <ol class="list-group list-group-numbered">
-                      <% for (let review of campground.reviews) {%>
-                      <li class="list-group-item d-flex justify-content-between align-items-start">
-                        <div class="ms-2 me-auto">
-                          <div class="fw-bold"><%= review.body%></div>
-                          <form action="/campgrounds/<%=campground._id%>/reviews/<%=review._id%>?_method=DELETE" method="POST">
-                            <button class="btn btn-sm btn-danger">Delete</button>
-                          </form>
-                        </div>
-                        <span class="badge bg-primary rounded-pill">Rating: <%= review.rating%></span>
-                      </li>
-                      <%}%>
-                    </ol>
+                    <% if (campground.reviews.length !== 0) {%>
+                      <h3>Reviews</h3>
+                      <ol class="list-group list-group-numbered">
+                        <% for (let review of campground.reviews) {%>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                          <div class="ms-2 me-auto">
+                            <div>
+                              <span class="fw-bold">
+                                <%=review.author.username%> : 
+                              </span> 
+                              <%= review.body%>
+                            </div>
+                            <div class="badge bg-info rounded-pill">Rating: <%= review.rating%></div> 
+                          </div>
+                                                 
+
+                          <% if (currentUser && review.author._id.equals(currentUser._id)) {%>
+                          <div>
+                            <form action="/campgrounds/<%=campground._id%>/reviews/<%=review._id%>?_method=DELETE" method="POST">
+                              <button class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                          </div>
+                          <%}%>
+                        </li>
+                        <%}%>
+                      </ol>
+                    <%}%>
                   </div>
   </div>
+
 </div>
 
 

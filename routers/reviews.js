@@ -5,35 +5,18 @@ const catchAsync = require('../utils/catchAsync')
 const ExpressError = require('../utils/expressError')
 // validation schema
 const {reviewValidationSchema} = require('../middleWare/validation/validationSchema')
-// model
-const Campground = require('../models/campground')
-const Review = require('../models/review')
+
+const reviews = require('../controllers/reviews')
+
+const isLoggedIn = require('../middleWare/authentication')
+const isAuthor = require('../middleWare/authorization')
 
 const router = require('express').Router({mergeParams: true});
 
 // POST /campgrounds/:id/reviews
-router.post('/', validateReqDataMW(reviewValidationSchema) , catchAsync(async(req, res) => {
-    const campground = await Campground.findById(req.params.id);
-    if(!canFindCamground(campground)) {
-        return res.redirect(`/campgrounds/${campground._id}`);
-    }
-    const reviewData = req.body.review;
-    if (!reviewData) throw new ExpressError("Invalid review data", 400);
-    const review = new Review(reviewData);
-    campground.reviews.push(review);
-    await review.save();
-    await campground.save();
-    req.flash('success', 'Successfully add the review!')
-    res.redirect(`/campgrounds/${campground._id}`);
-}))
+router.post('/', isLoggedIn, validateReqDataMW(reviewValidationSchema) , catchAsync(reviews.newReview))
 
 // DELETE review in campground
-router.delete('/:reviewId', catchAsync(async (req, res) => {
-    const {id, reviewId} = req.params;
-    await Campground.findByIdAndUpdate(id, {$pull: {reviews: reviewId}});
-    await Review.deleteOne({_id: reviewId});  
-    req.flash('success', `Successfully delete the review!`)
-    res.redirect(`/campgrounds/${id}`);
-}))
+router.delete('/:reviewId', isLoggedIn, isAuthor, catchAsync(reviews.deleteReview))
 
 module.exports = router;
